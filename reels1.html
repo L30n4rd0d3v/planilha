@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reels — Planilha do Aprovado</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=Space+Mono:wght@400;700&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --neon:   #00FF88;
+  --carbon: #090909;
+  --gold:   #F5C518;
+  --danger: #FF4444;
+  --w: 390px;
+  --h: 844px;
+}
+
+body {
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Barlow', sans-serif;
+}
+
+/* ── PHONE FRAME ── */
+.phone {
+  width: var(--w);
+  height: var(--h);
+  background: var(--carbon);
+  border-radius: 44px;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.08),
+    0 40px 120px rgba(0,0,0,0.8),
+    0 0 80px rgba(0,255,136,0.06);
+  flex-shrink: 0;
+}
+
+/* ── CANVAS PARTICLES ── */
+#cvs {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 2; pointer-events: none;
+}
+
+/* ── GRID ── */
+.grid-bg {
+  position: absolute; inset: 0; z-index: 1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── NOISE ── */
+.noise {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.03;
+}
+
+/* ── GLOW BLOBS ── */
+.blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px); pointer-events: none; z-index: 1;
+}
+
+/* ── SCENE CONTAINER ── */
+.scene {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+  overflow: hidden;
+}
+
+/* ── MEGA WORD — BG LAYER ── */
+.mega {
+  position: absolute;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1.2px rgba(255,255,255,0.1);
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  will-change: transform, opacity;
+}
+
+/* ── PHOTO ── */
+.photo-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: 320px;
+  will-change: transform, opacity;
+}
+.photo-wrap img {
+  width: 100%;
+  display: block;
+  filter: drop-shadow(0 -20px 60px rgba(0,255,136,0.15));
+}
+
+/* ── TOP OVERLAY ── */
+.top-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 28px 24px 0;
+  z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--neon);
+  color: #000;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700; font-size: 0.55rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 5px 10px; border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0,255,136,0.5);
+  will-change: opacity, transform;
+}
+.badge-dot {
+  width: 6px; height: 6px; background: #000; border-radius: 50%;
+  animation: bdot 1.4s ease-in-out infinite;
+}
+@keyframes bdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+
+/* ── MAIN COPY BLOCK ── */
+.copy-block {
+  position: absolute;
+  left: 0; right: 0;
+  z-index: 40;
+  padding: 0 22px;
+  will-change: transform, opacity;
+}
+
+.headline {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.hl-neon { color: var(--neon); }
+.hl-gold { color: var(--gold); }
+
+/* ── STAT PILL ── */
+.stat-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 999px;
+  padding: 8px 16px;
+  backdrop-filter: blur(8px);
+  will-change: opacity, transform;
+}
+.stat-pill-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900; font-size: 1.4rem;
+  color: var(--neon); line-height: 1;
+}
+.stat-pill-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.5);
+  line-height: 1.3;
+}
+
+/* ── CTA BUTTON ── */
+.cta-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--neon);
+  color: #000;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900; font-size: 1rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 14px 24px; border-radius: 10px;
+  text-decoration: none;
+  box-shadow: 0 0 40px rgba(0,255,136,0.4);
+  will-change: opacity, transform;
+}
+
+/* ── BOTTOM SAFE ── */
+.bottom-block {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 0 22px 32px;
+  z-index: 50;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+/* ── PROGRESS BAR ── */
+.prog-wrap { will-change: opacity, transform; }
+.prog-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.4);
+  margin-bottom: 5px;
+  display: flex; justify-content: space-between;
+}
+.prog-track {
+  height: 3px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;
+}
+.prog-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--neon), #00ccff);
+  box-shadow: 0 0 10px rgba(0,255,136,0.6);
+  border-radius: 999px;
+  transition: width 1.4s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ── D-DAY CHIP ── */
+.dday-chip {
+  position: absolute;
+  top: 80px; right: 22px;
+  background: rgba(14,14,16,0.85);
+  border: 1px solid rgba(245,197,24,0.3);
+  border-radius: 10px; padding: 10px 14px;
+  backdrop-filter: blur(10px);
+  z-index: 50; text-align: center;
+  will-change: opacity, transform;
+}
+.dday-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900; font-size: 2rem; color: var(--gold); line-height: 1;
+}
+.dday-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.4);
+}
+
+/* ── WARNING CHIP ── */
+.warn-chip {
+  position: absolute;
+  top: 80px; left: 22px;
+  background: rgba(14,14,16,0.85);
+  border: 1px solid rgba(255,68,68,0.25);
+  border-radius: 10px; padding: 8px 12px;
+  backdrop-filter: blur(10px);
+  z-index: 50;
+  will-change: opacity, transform;
+  max-width: 140px;
+}
+.warn-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.46rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,80,80,0.9);
+  line-height: 1.4;
+}
+
+/* ── SCANLINE ── */
+.scanline {
+  position: absolute; inset: 0; z-index: 9; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px
+  );
+}
+
+/* ── REPLAY BTN ── */
+#replay {
+  position: fixed; bottom: 32px; right: 32px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff; font-family: 'Space Mono', monospace;
+  font-size: 0.7rem; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 10px 18px;
+  border-radius: 8px; cursor: pointer;
+  transition: background .2s;
+  backdrop-filter: blur(8px);
+}
+#replay:hover { background: rgba(0,255,136,0.15); border-color: var(--neon); color: var(--neon); }
+
+/* ── TIMER BAR ── */
+#timer-bar {
+  position: absolute; top: 0; left: 0; height: 3px;
+  background: var(--neon);
+  box-shadow: 0 0 8px var(--neon);
+  z-index: 100; width: 0%;
+  transition: none;
+}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <!-- Progress timer bar -->
+  <div id="timer-bar"></div>
+
+  <!-- BG layers -->
+  <div class="grid-bg"></div>
+  <div class="noise"></div>
+  <div class="scanline"></div>
+  <canvas id="cvs"></canvas>
+
+  <!-- Glow blobs -->
+  <div class="blob" style="width:300px;height:300px;background:rgba(0,255,136,0.07);top:-60px;left:-60px;"></div>
+  <div class="blob" style="width:250px;height:250px;background:rgba(0,80,255,0.04);bottom:100px;right:-60px;"></div>
+  <div class="blob" id="neon-burst" style="width:200px;height:200px;background:rgba(0,255,136,0);bottom:200px;left:50%;transform:translateX(-50%);transition:background 0.4s;"></div>
+
+  <!-- SCENE -->
+  <div class="scene" id="scene">
+
+    <!-- MEGA BG WORDS -->
+    <div class="mega" id="m1" style="font-size:6rem;top:100px;left:-10px;opacity:0;">APROVADA</div>
+    <div class="mega" id="m2" style="font-size:4.5rem;bottom:260px;right:-8px;opacity:0;text-align:right;">PLANILHA</div>
+    <div class="mega" id="m3" style="font-size:3.2rem;top:48%;left:50%;transform:translate(-50%,-50%);opacity:0;color:rgba(0,255,136,0.06);-webkit-text-stroke:1px rgba(0,255,136,0.15);">DO APROVADO</div>
+
+    <!-- PHOTO -->
+    <div class="photo-wrap" id="photo" style="opacity:0;">
+      <img src="aprovada.png" alt="Aprovada">
+    </div>
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <div class="badge" id="badge" style="opacity:0;">
+        <span class="badge-dot"></span>
+        Progresso dos Estudos
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.48rem;color:rgba(255,255,255,0.2);letter-spacing:0.08em;opacity:0;" id="build-tag">BUILD v2.4.1</div>
+    </div>
+
+    <!-- D-DAY CHIP -->
+    <div class="dday-chip" id="dday" style="opacity:0;">
+      <div class="dday-num">57</div>
+      <div class="dday-label">dias p/ prova</div>
+    </div>
+
+    <!-- WARN CHIP -->
+    <div class="warn-chip" id="warn" style="opacity:0;">
+      <div class="warn-label">⚠ Dir. Constitucional<br>abaixo do ritmo</div>
+    </div>
+
+    <!-- HEADLINE BLOCK — middle -->
+    <div class="copy-block" id="copy1" style="top:50%;transform:translateY(-58%);opacity:0;text-align:center;">
+      <p style="font-family:'Space Mono',monospace;font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:10px;">Para concurseiros sérios</p>
+      <div class="headline" style="font-size:3.2rem;">
+        PARE DE<br>
+        ESTUDAR<br>
+        <span class="hl-neon">NO ESCURO</span>
+      </div>
+    </div>
+
+    <!-- HEADLINE 2 — sobre progresso -->
+    <div class="copy-block" id="copy2" style="top:22%;opacity:0;text-align:left;">
+      <p style="font-family:'Space Mono',monospace;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(0,255,136,0.6);margin-bottom:8px;">O sistema que aprova</p>
+      <div class="headline" style="font-size:2.6rem;">
+        MEÇA.<br>
+        CORRIJA.<br>
+        <span class="hl-gold">SEJA APROVADO.</span>
+      </div>
+    </div>
+
+    <!-- BOTTOM BLOCK -->
+    <div class="bottom-block">
+
+      <!-- progress bars -->
+      <div class="prog-wrap" id="bars" style="opacity:0;">
+        <div style="margin-bottom:10px;">
+          <div class="prog-label"><span>Horas Executadas</span><span style="color:rgba(255,255,255,0.6);">9h / 20h</span></div>
+          <div class="prog-track"><div class="prog-fill" id="pf1" data-w="45"></div></div>
+        </div>
+        <div>
+          <div class="prog-label"><span>Constância</span><span style="color:rgba(255,255,255,0.6);">3 / 7 dias</span></div>
+          <div class="prog-track"><div class="prog-fill" id="pf2" data-w="42" style="background:linear-gradient(90deg,#F5C518,#ff9900);box-shadow:0 0 10px rgba(245,197,24,0.5);"></div></div>
+        </div>
+      </div>
+
+      <!-- stat pills -->
+      <div style="display:flex;gap:8px;opacity:0;" id="pills">
+        <div class="stat-pill">
+          <span class="stat-pill-num">7</span>
+          <span class="stat-pill-label">dias p/<br>sentir diff.</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-num">1</span>
+          <span class="stat-pill-label">único<br>arquivo</span>
+        </div>
+        <div class="stat-pill" style="border-color:rgba(0,255,136,0.2);">
+          <span class="stat-pill-num" style="font-size:0.9rem;">5★</span>
+          <span class="stat-pill-label">avaliação<br>média</span>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <a href="https://pay.kiwify.com.br/q33q2lC" target="_blank" class="cta-btn" id="cta" style="opacity:0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+        Apenas R$37 · Comente: <strong>Planilha</strong>
+      </a>
+
+      <p style="font-family:'Space Mono',monospace;font-size:0.48rem;color:rgba(255,255,255,0.25);letter-spacing:0.08em;text-align:center;opacity:0;" id="note">✉ Necessário ter Gmail · pay.kiwify.com.br/q33q2lC</p>
+    </div>
+
+  </div><!-- /scene -->
+</div><!-- /phone -->
+
+<button id="replay">↺ Replay</button>
+
+<script>
+/* ── PARTICLES ── */
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d');
+const phone = document.getElementById('phone');
+let W, H;
+function resize() {
+  W = cvs.width = phone.offsetWidth;
+  H = cvs.height = phone.offsetHeight;
+}
+resize();
+
+class P {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = H + 10;
+    this.size = Math.random() * 1.4 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.4;
+    this.vy = -Math.random() * 0.8 - 0.3;
+    this.alpha = Math.random() * 0.5 + 0.1;
+    this.life = 0;
+    this.max = Math.random() * 160 + 80;
+  }
+  tick() {
+    this.x += this.vx; this.y += this.vy; this.life++;
+    if (this.life > this.max || this.y < -10) this.reset();
+  }
+  draw() {
+    const p = this.life / this.max;
+    const a = this.alpha * (p < 0.1 ? p*10 : p > 0.8 ? (1-p)*5 : 1);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,255,136,${a})`;
+    ctx.fill();
+  }
+}
+const particles = Array.from({length:60}, () => new P());
+function loop() {
+  ctx.clearRect(0,0,W,H);
+  particles.forEach(p => { p.tick(); p.draw(); });
+  requestAnimationFrame(loop);
+}
+loop();
+
+/* ── TIMER BAR ── */
+const timerBar = document.getElementById('timer-bar');
+let timerStart = null;
+const DURATION = 16000; // 16s total
+function tickTimer(ts) {
+  if (!timerStart) timerStart = ts;
+  const p = Math.min((ts - timerStart) / DURATION * 100, 100);
+  timerBar.style.width = p + '%';
+  if (p < 100) requestAnimationFrame(tickTimer);
+}
+
+/* ── GSAP TIMELINE ── */
+function play() {
+  timerStart = null;
+  timerBar.style.width = '0%';
+  requestAnimationFrame(tickTimer);
+
+  // reset all
+  gsap.set(['#m1','#m2','#m3','#photo','#badge','#build-tag',
+            '#dday','#warn','#copy1','#copy2',
+            '#bars','#pills','#cta','#note'],
+    { opacity:0, clearProps:'transform,x,y,scale' });
+  document.querySelectorAll('.prog-fill').forEach(b => b.style.width = '0%');
+  document.getElementById('neon-burst').style.background = 'rgba(0,255,136,0)';
+
+  const tl = gsap.timeline({ defaults:{ ease:'expo.out' } });
+
+  /* 0s — grid flash + mega words */
+  tl.to('#m1', { opacity:1, x:0, duration:0.8 }, 0)
+    .fromTo('#m1', { x:-40 }, { x:0, duration:0.8 }, 0)
+    .to('#m3', { opacity:1, duration:1 }, 0.2)
+
+  /* 0.3s — badge + build tag */
+  .to('#badge', { opacity:1, y:0, duration:0.5 }, 0.3)
+  .fromTo('#badge', { y:-16 }, { y:0, duration:0.5 }, 0.3)
+  .to('#build-tag', { opacity:1, duration:0.4 }, 0.5)
+
+  /* 0.5s — headline 1 */
+  .to('#copy1', { opacity:1, y:0, duration:0.7 }, 0.5)
+  .fromTo('#copy1', { y:30 }, { y:0, duration:0.7 }, 0.5)
+
+  /* 1.5s — chips aparecem */
+  .to('#dday', { opacity:1, x:0, duration:0.5 }, 1.5)
+  .fromTo('#dday', { x:30 }, { x:0, duration:0.5 }, 1.5)
+  .to('#warn', { opacity:1, x:0, duration:0.5 }, 1.7)
+  .fromTo('#warn', { x:-30 }, { x:0, duration:0.5 }, 1.7)
+
+  /* 3s — copy1 sai, copy2 entra + foto sobe */
+  .to('#copy1', { opacity:0, y:-30, duration:0.5 }, 3)
+  .to('#m1', { opacity:0, duration:0.4 }, 3)
+  .to('#m2', { opacity:1, x:0, duration:0.8 }, 3.2)
+  .fromTo('#m2', { x:40 }, { x:0, duration:0.8 }, 3.2)
+
+  .to('#copy2', { opacity:1, y:0, duration:0.7 }, 3.3)
+  .fromTo('#copy2', { y:30 }, { y:0, duration:0.7 }, 3.3)
+
+  /* 4s — foto entra vindo de baixo */
+  .to('#photo', { opacity:1, y:0, duration:1 }, 4)
+  .fromTo('#photo', { y:80 }, { y:0, duration:1, ease:'back.out(1.2)' }, 4)
+
+  /* 5s — neon burst sob a foto */
+  .to('#neon-burst', {
+    background:'rgba(0,255,136,0.12)',
+    duration:0.6, ease:'power2.out'
+  }, 5)
+
+  /* 6s — chips somem, copy2 permanece até o fim */
+  .to(['#dday','#warn'], { opacity:0, duration:0.4 }, 6)
+
+  /* 7s — barras de progresso */
+  .to('#bars', { opacity:1, y:0, duration:0.5 }, 7)
+  .fromTo('#bars', { y:20 }, { y:0, duration:0.5 }, 7)
+  .call(() => {
+    document.getElementById('pf1').style.width = '45%';
+    document.getElementById('pf2').style.width = '42%';
+  }, null, 7.1)
+
+  /* 9s — stat pills */
+  .to('#pills', { opacity:1, y:0, duration:0.5 }, 9)
+  .fromTo('#pills', { y:16 }, { y:0, duration:0.5 }, 9)
+
+  /* 10.5s — foto pulsa (celebração) */
+  .to('#photo', { scale:1.04, duration:0.3, ease:'power1.out' }, 10.5)
+  .to('#photo', { scale:1, duration:0.4, ease:'elastic.out(1,0.5)' }, 10.8)
+
+  /* 11s — CTA */
+  .to('#cta', { opacity:1, y:0, duration:0.6 }, 11)
+  .fromTo('#cta', { y:20, scale:0.95 }, { y:0, scale:1, duration:0.6, ease:'back.out(1.5)' }, 11)
+
+  /* 11.8s — CTA glow pulse */
+  .to('#cta', { boxShadow:'0 0 70px rgba(0,255,136,0.8)', duration:0.4 }, 11.8)
+  .to('#cta', { boxShadow:'0 0 40px rgba(0,255,136,0.4)', duration:0.6 }, 12.2)
+
+  /* 12.5s — nota rodapé */
+  .to('#note', { opacity:1, duration:0.4 }, 12.5)
+
+  /* 13.5s — tudo pulsa suavemente até fim */
+  .to(['#cta','#photo'], { scale:1.02, duration:0.8, yoyo:true, repeat:1, ease:'sine.inOut' }, 13.5);
+}
+
+play();
+document.getElementById('replay').addEventListener('click', play);
+</script>
+</body>
+</html>
