@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reels — Planilha do Aprovado</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=Space+Mono:wght@400;700&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --neon:   #00FF88;
+  --carbon: #090909;
+  --gold:   #F5C518;
+  --danger: #FF4444;
+  --w: 390px;
+  --h: 844px;
+}
+
+body {
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Barlow', sans-serif;
+}
+
+/* ── PHONE FRAME ── */
+.phone {
+  width: var(--w);
+  height: var(--h);
+  background: var(--carbon);
+  border-radius: 44px;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.08),
+    0 40px 120px rgba(0,0,0,0.9),
+    0 0 80px rgba(0,255,136,0.07);
+  flex-shrink: 0;
+}
+
+/* ── CANVAS ── */
+#cvs {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  z-index:2; pointer-events:none;
+}
+
+/* ── GRID ── */
+.grid-bg {
+  position:absolute; inset:0; z-index:1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── NOISE ── */
+.noise {
+  position:absolute; inset:0; z-index:3; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity:0.03;
+}
+
+/* ── SCANLINE ── */
+.scanline {
+  position:absolute; inset:0; z-index:4; pointer-events:none;
+  background:repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px
+  );
+}
+
+/* ── GLOW BLOBS ── */
+.blob {
+  position:absolute; border-radius:50%;
+  filter:blur(90px); pointer-events:none; z-index:1;
+}
+
+/* ── TIMER BAR ── */
+#timer-bar {
+  position:absolute; top:0; left:0; height:3px;
+  background:var(--neon);
+  box-shadow:0 0 8px var(--neon);
+  z-index:100; width:0%;
+}
+
+/* ── MEGA WORDS ── */
+.mega {
+  position:absolute;
+  font-family:'Barlow Condensed', sans-serif;
+  font-weight:900;
+  text-transform:uppercase;
+  color:transparent;
+  -webkit-text-stroke:1.2px rgba(255,255,255,0.09);
+  white-space:nowrap;
+  user-select:none; pointer-events:none;
+  line-height:1; letter-spacing:-0.02em;
+  will-change:transform,opacity;
+}
+.mega-neon {
+  -webkit-text-stroke:1px rgba(0,255,136,0.18);
+}
+
+/* ── PHOTO ── */
+.photo-wrap {
+  position:absolute;
+  bottom:-10px;
+  left:50%;
+  transform:translateX(-46%);
+  z-index:20;
+  width:360px;
+  will-change:transform,opacity;
+}
+.photo-wrap img {
+  width:100%; display:block;
+  filter:
+    drop-shadow(0 -10px 40px rgba(0,255,136,0.12))
+    drop-shadow(0 20px 60px rgba(0,0,0,0.7));
+}
+
+/* ── BADGE ── */
+.badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--neon); color:#000;
+  font-family:'Space Mono', monospace;
+  font-weight:700; font-size:0.55rem;
+  letter-spacing:0.1em; text-transform:uppercase;
+  padding:5px 10px; border-radius:4px;
+  box-shadow:0 0 22px rgba(0,255,136,0.55);
+  will-change:opacity,transform;
+}
+.bdot {
+  width:6px; height:6px; background:#000; border-radius:50%;
+  animation:bdot 1.4s ease-in-out infinite;
+}
+@keyframes bdot {0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+
+/* ── TOP BAR ── */
+.top-bar {
+  position:absolute; top:0; left:0; right:0;
+  padding:28px 22px 0;
+  z-index:40;
+  display:flex; align-items:center; justify-content:space-between;
+}
+
+/* ── CORNER COORDS ── */
+.corner {
+  position:absolute;
+  font-family:'Space Mono', monospace;
+  font-size:0.48rem; color:rgba(255,255,255,0.13);
+  letter-spacing:0.08em; pointer-events:none; z-index:40;
+}
+.corner::before {
+  content:''; display:block;
+  width:12px; height:12px;
+  border-color:rgba(255,255,255,0.15);
+  border-style:solid; border-width:0;
+  position:absolute;
+}
+.c-tl { top:22px; left:20px; }
+.c-tl::before { border-top-width:1px; border-left-width:1px; top:-5px; left:-5px; }
+.c-br { bottom:22px; right:20px; text-align:right; }
+.c-br::before { border-bottom-width:1px; border-right-width:1px; bottom:-5px; right:-5px; }
+
+/* ── HEADLINE BLOCK ── */
+.copy-block {
+  position:absolute; left:0; right:0;
+  z-index:40; padding:0 22px;
+  will-change:transform,opacity;
+}
+.headline {
+  font-family:'Barlow Condensed', sans-serif;
+  font-weight:900; text-transform:uppercase;
+  line-height:0.9; letter-spacing:-0.025em; color:#fff;
+}
+.hl-neon  { color:var(--neon); }
+.hl-gold  { color:var(--gold); }
+.hl-out   { color:transparent; -webkit-text-stroke:2px rgba(255,255,255,0.5); }
+
+/* ── FLOATING CHIPS ── */
+.chip {
+  position:absolute; z-index:50;
+  background:rgba(12,12,14,0.88);
+  border-radius:10px; padding:10px 14px;
+  backdrop-filter:blur(12px);
+  will-change:opacity,transform;
+  animation:chipfloat 4s ease-in-out infinite;
+}
+@keyframes chipfloat {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.chip-2 { animation-delay:1.2s; animation-duration:5s; }
+.chip-3 { animation-delay:0.6s; animation-duration:4.5s; }
+
+.chip-num {
+  font-family:'Barlow Condensed', sans-serif;
+  font-weight:900; font-size:1.8rem; line-height:1;
+}
+.chip-label {
+  font-family:'Space Mono', monospace;
+  font-size:0.46rem; letter-spacing:0.08em;
+  text-transform:uppercase; color:rgba(255,255,255,0.4);
+  margin-top:2px;
+}
+
+/* ── PROGRESS BARS ── */
+.prog-wrap { will-change:opacity,transform; }
+.prog-label {
+  font-family:'Space Mono', monospace;
+  font-size:0.5rem; letter-spacing:0.09em;
+  text-transform:uppercase; color:rgba(255,255,255,0.38);
+  margin-bottom:5px;
+  display:flex; justify-content:space-between;
+}
+.prog-track {
+  height:3px; background:rgba(255,255,255,0.05);
+  border-radius:999px; overflow:hidden;
+}
+.prog-fill {
+  height:100%; width:0%; border-radius:999px;
+  background:linear-gradient(90deg, var(--neon), #00ccff);
+  box-shadow:0 0 10px rgba(0,255,136,0.6);
+  transition:width 1.5s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ── STAT PILLS ── */
+.pill {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:999px; padding:7px 14px;
+  backdrop-filter:blur(8px);
+}
+.pill-num {
+  font-family:'Barlow Condensed', sans-serif;
+  font-weight:900; font-size:1.3rem; color:var(--neon); line-height:1;
+}
+.pill-label {
+  font-family:'Space Mono', monospace;
+  font-size:0.48rem; letter-spacing:0.08em;
+  text-transform:uppercase; color:rgba(255,255,255,0.4);
+  line-height:1.3;
+}
+
+/* ── CTA ── */
+.cta-btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--neon); color:#000;
+  font-family:'Barlow Condensed', sans-serif;
+  font-weight:900; font-size:1.05rem;
+  letter-spacing:0.05em; text-transform:uppercase;
+  padding:15px 20px; border-radius:10px;
+  text-decoration:none;
+  box-shadow:0 0 40px rgba(0,255,136,0.35);
+  will-change:opacity,transform;
+}
+
+/* ── BOTTOM BLOCK ── */
+.bottom-block {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:0 20px 30px; z-index:50;
+  display:flex; flex-direction:column; gap:10px;
+}
+
+/* ── REPLAY ── */
+#replay {
+  position:fixed; bottom:28px; right:28px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.14);
+  color:#fff; font-family:'Space Mono', monospace;
+  font-size:0.65rem; letter-spacing:0.1em;
+  text-transform:uppercase; padding:9px 16px;
+  border-radius:8px; cursor:pointer;
+  transition:all .2s; backdrop-filter:blur(8px);
+}
+#replay:hover { background:rgba(0,255,136,0.14); border-color:var(--neon); color:var(--neon); }
+
+/* ── GANCHO FIXO ── */
+#gancho {
+  position:absolute;
+  top:22%;
+  left:0; right:0;
+  z-index:45;
+  padding:0 22px;
+  will-change:opacity,transform;
+}
+.gancho-eyebrow {
+  font-family:'Space Mono', monospace;
+  font-size:0.5rem; letter-spacing:0.18em;
+  text-transform:uppercase; color:rgba(0,255,136,0.65);
+  margin-bottom:8px;
+}
+.gancho-headline {
+  font-family:'Barlow Condensed', sans-serif;
+  font-weight:900; font-size:2.55rem;
+  text-transform:uppercase;
+  line-height:0.92; letter-spacing:-0.02em;
+  color:#fff;
+}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div id="timer-bar"></div>
+
+  <div class="grid-bg"></div>
+  <div class="noise"></div>
+  <div class="scanline"></div>
+  <canvas id="cvs"></canvas>
+
+  <!-- Blobs -->
+  <div class="blob" style="width:280px;height:280px;background:rgba(0,255,136,0.06);top:-80px;left:-60px;"></div>
+  <div class="blob" style="width:220px;height:220px;background:rgba(0,60,255,0.04);bottom:80px;right:-50px;"></div>
+  <div class="blob" id="burst" style="width:240px;height:240px;background:rgba(0,255,136,0);bottom:180px;left:50%;transform:translateX(-50%);transition:background .5s;"></div>
+
+  <!-- Corner coords -->
+  <div class="corner c-tl" id="coord">X: 00.00<br>Y: 00.00</div>
+  <div class="corner c-br">SISTEMA ATIVO<br><span style="color:var(--neon);">STATUS: OK</span></div>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="badge" id="badge" style="opacity:0;">
+      <span class="bdot"></span>Progresso dos Estudos
+    </div>
+    <span style="font-family:'Space Mono',monospace;font-size:0.46rem;color:rgba(255,255,255,0.18);letter-spacing:0.08em;opacity:0;" id="buildtag">BUILD v2.4.1</span>
+  </div>
+
+  <!-- MEGA BG WORDS -->
+  <div class="mega" id="m1" style="font-size:5.8rem;top:92px;left:-8px;opacity:0;">APROVADO</div>
+  <div class="mega mega-neon" id="m2" style="font-size:4.2rem;bottom:250px;right:-6px;opacity:0;text-align:right;">PLANILHA</div>
+  <div class="mega" id="m3" style="font-size:3rem;top:46%;left:50%;transform:translate(-50%,-50%);opacity:0;-webkit-text-stroke:1px rgba(0,255,136,0.13);">DO APROVADO</div>
+
+  <!-- FOTO -->
+  <div class="photo-wrap" id="photo" style="opacity:0;">
+    <img src="homem.png" alt="Aprovado">
+  </div>
+
+  <!-- ── GANCHO FIXO (permanece até o fim) ── -->
+  <div id="gancho" style="opacity:0;">
+    <p class="gancho-eyebrow">O sistema que aprova</p>
+    <div class="gancho-headline">
+      MEÇA.<br>
+      CORRIJA.<br>
+      <span class="hl-neon">SEJA<br>APROVADO.</span>
+    </div>
+  </div>
+
+  <!-- D-DAY CHIP -->
+  <div class="chip" id="dday" style="top:76px;right:20px;border:1px solid rgba(245,197,24,0.3);opacity:0;">
+    <div class="chip-num" style="color:var(--gold);">57</div>
+    <div class="chip-label">dias p/ prova</div>
+  </div>
+
+  <!-- WARN CHIP -->
+  <div class="chip chip-2" id="warn" style="top:78px;left:20px;border:1px solid rgba(255,68,68,0.22);opacity:0;max-width:145px;">
+    <div style="font-family:'Space Mono',monospace;font-size:0.46rem;color:rgba(255,80,80,0.9);letter-spacing:0.07em;line-height:1.5;">⚠ Dir. Constitucional<br>abaixo do ritmo</div>
+  </div>
+
+  <!-- HEADLINE 1 — gancho inicial (some depois) -->
+  <div class="copy-block" id="copy1" style="top:50%;transform:translateY(-60%);opacity:0;text-align:center;">
+    <p style="font-family:'Space Mono',monospace;font-size:0.52rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-bottom:10px;">Para concurseiros sérios</p>
+    <div class="headline" style="font-size:3.4rem;">
+      PARE DE<br>
+      ESTUDAR<br>
+      <span class="hl-neon">NO ESCURO</span>
+    </div>
+  </div>
+
+  <!-- BOTTOM BLOCK -->
+  <div class="bottom-block">
+
+    <!-- progress bars -->
+    <div class="prog-wrap" id="bars" style="opacity:0;">
+      <div style="margin-bottom:10px;">
+        <div class="prog-label">
+          <span>Horas Executadas</span>
+          <span style="color:rgba(255,255,255,0.55);">9h / 20h</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="pf1"></div></div>
+      </div>
+      <div>
+        <div class="prog-label">
+          <span>Constância</span>
+          <span style="color:rgba(255,255,255,0.55);">3 / 7 dias</span>
+        </div>
+        <div class="prog-track">
+          <div class="prog-fill" id="pf2" style="background:linear-gradient(90deg,#F5C518,#ff9900);box-shadow:0 0 10px rgba(245,197,24,0.5);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- stat pills -->
+    <div style="display:flex;gap:8px;opacity:0;flex-wrap:wrap;" id="pills">
+      <div class="pill">
+        <span class="pill-num">7</span>
+        <span class="pill-label">dias p/<br>sentir diff.</span>
+      </div>
+      <div class="pill">
+        <span class="pill-num">1</span>
+        <span class="pill-label">único<br>arquivo</span>
+      </div>
+      <div class="pill" style="border-color:rgba(0,255,136,0.18);">
+        <span class="pill-num" style="font-size:0.95rem;">5★</span>
+        <span class="pill-label">avaliação<br>média</span>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-btn" id="cta" style="opacity:0;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+      Apenas R$37 · Comente: <strong style="margin-left:3px;">Planilha</strong>
+    </div>
+
+    <p style="font-family:'Space Mono',monospace;font-size:0.46rem;color:rgba(255,255,255,0.22);letter-spacing:0.07em;text-align:center;opacity:0;" id="note">
+      ✉ Gmail obrigatório · pay.kiwify.com.br/q33q2lC
+    </p>
+  </div>
+
+</div><!-- /phone -->
+
+<button id="replay">↺ Replay</button>
+
+<script>
+/* ── PARTICLES ── */
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d');
+const phone = document.getElementById('phone');
+
+function resizeCvs() {
+  cvs.width  = phone.offsetWidth;
+  cvs.height = phone.offsetHeight;
+}
+resizeCvs();
+
+class P {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * cvs.width;
+    this.y = cvs.height + 10;
+    this.size = Math.random() * 1.5 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.35;
+    this.vy = -Math.random() * 0.7 - 0.25;
+    this.alpha = Math.random() * 0.45 + 0.08;
+    this.life = 0;
+    this.max = Math.random() * 160 + 80;
+  }
+  tick() {
+    this.x += this.vx; this.y += this.vy; this.life++;
+    if (this.life > this.max || this.y < -10) this.reset();
+  }
+  draw() {
+    const p = this.life / this.max;
+    const a = this.alpha * (p < 0.1 ? p*10 : p > 0.8 ? (1-p)*5 : 1);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,255,136,${a})`;
+    ctx.fill();
+  }
+}
+
+const particles = Array.from({length:70}, () => new P());
+function loopP() {
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  particles.forEach(p => { p.tick(); p.draw(); });
+  requestAnimationFrame(loopP);
+}
+loopP();
+
+/* ── TIMER BAR ── */
+const timerBar = document.getElementById('timer-bar');
+let timerStart = null;
+const TOTAL = 16500;
+
+function tickTimer(ts) {
+  if (!timerStart) timerStart = ts;
+  const pct = Math.min((ts - timerStart) / TOTAL * 100, 100);
+  timerBar.style.width = pct + '%';
+  if (pct < 100) requestAnimationFrame(tickTimer);
+}
+
+/* ── MAIN TIMELINE ── */
+function play() {
+  timerStart = null;
+  timerBar.style.width = '0%';
+  requestAnimationFrame(tickTimer);
+
+  const all = ['#m1','#m2','#m3','#photo','#badge','#buildtag',
+               '#dday','#warn','#copy1','#gancho',
+               '#bars','#pills','#cta','#note'];
+  gsap.set(all, { opacity:0, clearProps:'x,y,scale' });
+  document.querySelectorAll('.prog-fill').forEach(b => b.style.width='0%');
+  document.getElementById('burst').style.background = 'rgba(0,255,136,0)';
+
+  const tl = gsap.timeline({ defaults:{ ease:'expo.out' } });
+
+  /* 0s — grid flashes, mega words entram de lados opostos */
+  tl
+  .fromTo('#m1', { x:-50, opacity:0 }, { x:0, opacity:1, duration:1 }, 0)
+  .fromTo('#m3', { opacity:0 },        { opacity:1, duration:1.2 }, 0.2)
+
+  /* badge + buildtag */
+  .fromTo('#badge',    { y:-18, opacity:0 }, { y:0, opacity:1, duration:0.5 }, 0.3)
+  .to('#buildtag', { opacity:1, duration:0.4 }, 0.55)
+
+  /* headline 1 */
+  .fromTo('#copy1', { y:36, opacity:0 }, { y:0, opacity:1, duration:0.7 }, 0.5)
+
+  /* 1.6s — chips flutuantes */
+  .fromTo('#dday', { x:28, opacity:0 }, { x:0, opacity:1, duration:0.5 }, 1.6)
+  .fromTo('#warn', { x:-28, opacity:0 }, { x:0, opacity:1, duration:0.5 }, 1.8)
+
+  /* 3.2s — copy1 sai, mega2 entra, gancho entra e FICA */
+  .to('#copy1', { opacity:0, y:-28, duration:0.45 }, 3.2)
+  .to('#m1',    { opacity:0, duration:0.35 }, 3.2)
+  .fromTo('#m2', { x:40, opacity:0 }, { x:0, opacity:1, duration:0.8 }, 3.5)
+  .fromTo('#gancho', { y:24, opacity:0 }, { y:0, opacity:1, duration:0.7 }, 3.6)
+
+  /* 4.2s — foto sobe de baixo */
+  .fromTo('#photo',
+    { y:90, opacity:0 },
+    { y:0, opacity:1, duration:1.1, ease:'back.out(1.15)' }, 4.2)
+
+  /* 5.2s — neon burst */
+  .call(() => {
+    document.getElementById('burst').style.background = 'rgba(0,255,136,0.13)';
+  }, null, 5.2)
+
+  /* 6s — chips saem */
+  .to(['#dday','#warn'], { opacity:0, duration:0.4 }, 6)
+
+  /* 7s — barras de progresso */
+  .fromTo('#bars', { y:18, opacity:0 }, { y:0, opacity:1, duration:0.5 }, 7)
+  .call(() => {
+    document.getElementById('pf1').style.width = '45%';
+    document.getElementById('pf2').style.width = '42%';
+  }, null, 7.15)
+
+  /* 9s — stat pills */
+  .fromTo('#pills', { y:16, opacity:0 }, { y:0, opacity:1, duration:0.5 }, 9)
+
+  /* 10.5s — foto pulsa (celebração) */
+  .to('#photo', { scale:1.05, duration:0.3, ease:'power1.out' }, 10.5)
+  .to('#photo', { scale:1, duration:0.5, ease:'elastic.out(1,0.45)' }, 10.8)
+
+  /* 11s — CTA entra */
+  .fromTo('#cta',
+    { y:20, scale:0.93, opacity:0 },
+    { y:0, scale:1, opacity:1, duration:0.65, ease:'back.out(1.5)' }, 11)
+
+  /* 11.8s — glow pulse no CTA */
+  .to('#cta', { boxShadow:'0 0 70px rgba(0,255,136,0.75)', duration:0.4 }, 11.8)
+  .to('#cta', { boxShadow:'0 0 40px rgba(0,255,136,0.35)', duration:0.7 }, 12.2)
+
+  /* 12.5s — nota rodapé */
+  .to('#note', { opacity:1, duration:0.4 }, 12.5)
+
+  /* 13.5s — pulso final suave */
+  .to(['#cta','#photo'],
+    { scale:1.02, duration:0.8, yoyo:true, repeat:1, ease:'sine.inOut' }, 13.5)
+
+  /* Gancho pisca leve no fim para chamar atenção */
+  .to('#gancho', { opacity:0.6, duration:0.3 }, 14)
+  .to('#gancho', { opacity:1,   duration:0.3 }, 14.3)
+  .to('#gancho', { opacity:0.6, duration:0.3 }, 14.6)
+  .to('#gancho', { opacity:1,   duration:0.3 }, 14.9);
+}
+
+play();
+document.getElementById('replay').addEventListener('click', play);
+</script>
+</body>
+</html>
