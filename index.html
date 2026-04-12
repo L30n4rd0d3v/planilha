@@ -1,9 +1,26 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '986720797357537');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=986720797357537&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planilha do Aprovado — Controle Total da Sua Aprovação</title>
+<title>Painel do Aprovado — Controle Total da Sua Aprovação</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=Barlow:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -613,14 +630,14 @@ body:hover #cursor { opacity: 1; }
   <!-- Corner coords -->
   <div class="corner corner-tl" id="coord-tl">X: 00.00<br>Y: 00.00</div>
   <div class="corner corner-tr">BUILD v2.4.1<br>PROD / BR</div>
-  <div class="corner corner-bl">© PLANILHA DO APROVADO<br>2025 — TODOS OS DIREITOS</div>
+  <div class="corner corner-bl">© PAINEL DO APROVADO<br>2025 — TODOS OS DIREITOS</div>
   <div class="corner corner-br">SISTEMA ATIVO<br>STATUS: <span style="color:var(--neon);">OK</span></div>
 
   <div style="position:relative;width:100%;max-width:1200px;margin:0 auto;padding:90px 20px 70px;z-index:10;">
 
     <!-- BG MEGA WORD -->
     <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:1;pointer-events:none;">
-      <span class="mega-word" id="mega-planilha">PLANILHA</span>
+      <span class="mega-word" id="mega-painel">PAINEL</span>
     </div>
 
     <!-- TOP CONTENT -->
@@ -667,10 +684,7 @@ body:hover #cursor { opacity: 1; }
         </div>
       </div>
 
-      <!-- Depth trick: top half behind mega word -->
-      <div style="position:absolute;top:0;left:0;right:0;height:50%;overflow:hidden;z-index:2;pointer-events:none;">
-        <img src="dash.png" alt="Dashboard" class="dashboard-img" style="position:absolute;top:0;left:0;width:100%;">
-      </div>
+      <!-- Imagem única — sem duplicação -->
       <img src="dash.png" alt="Dashboard do Aprovado" class="dashboard-img" id="dash-img" style="position:relative;z-index:20;opacity:0;">
     </div>
 
@@ -688,13 +702,13 @@ body:hover #cursor { opacity: 1; }
       <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;opacity:0;" id="hero-btns">
         <a href="https://pay.kiwify.com.br/q33q2lC" target="_blank" class="btn-cta magnetic" id="main-cta">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
-          Quero Minha Planilha
+          Quero Meu Painel
         </a>
         <a href="#como-funciona" class="btn-secondary">Ver como funciona ↓</a>
       </div>
 
       <p style="margin-top:16px;font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:0.08em;opacity:0;" id="hero-note">
-        ✉ Necessário ter Gmail para receber sua planilha
+        ✉ Gmail obrigatório para receber seu Painel
       </p>
     </div>
   </div>
@@ -763,7 +777,7 @@ body:hover #cursor { opacity: 1; }
 
   <div style="margin-top:32px;text-align:center;" class="reveal">
     <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.6rem;color:var(--neon);letter-spacing:0.03em;text-transform:uppercase;">
-      A Planilha do Aprovado resolve tudo isso.
+      O Painel do Aprovado resolve tudo isso.
     </p>
   </div>
 </section>
@@ -829,7 +843,7 @@ body:hover #cursor { opacity: 1; }
   <p style="font-size:1.02rem;color:rgba(255,255,255,0.7);line-height:1.75;margin-bottom:32px;" class="reveal">
     Enquanto a maioria está estudando no "feeling" — sem saber se está no ritmo certo, sem identificar os buracos na preparação — <strong style="color:#fff;">os aprovados têm dados. Têm sistema. Têm controle.</strong>
     <br><br>
-    A Planilha do Aprovado é o sistema que coloca você no mesmo nível de gestão dos candidatos que vencem as disputas mais acirradas do país.
+    O Painel do Aprovado é o sistema que coloca você no mesmo nível de gestão dos candidatos que vencem as disputas mais acirradas do país.
   </p>
   <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.4rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.05em;" class="reveal">
     Por menos de um café por dia, você tem clareza total.
@@ -842,7 +856,7 @@ body:hover #cursor { opacity: 1; }
 <section style="padding:60px 20px 110px;max-width:600px;margin:0 auto;" class="reveal">
   <div class="price-box" style="text-align:center;">
     <p style="font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--neon);margin-bottom:18px;">Acesso Imediato</p>
-    <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2.4rem;text-transform:uppercase;margin-bottom:10px;">Planilha do Aprovado</h2>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2.4rem;text-transform:uppercase;margin-bottom:10px;">Painel do Aprovado</h2>
     <p style="color:var(--muted);font-size:0.9rem;margin-bottom:28px;">Dashboard completo · Atualizações gratuitas · Acesso vitalício</p>
 
     <div style="margin-bottom:32px;">
@@ -856,12 +870,12 @@ body:hover #cursor { opacity: 1; }
 
     <a href="https://pay.kiwify.com.br/q33q2lC" target="_blank" class="btn-cta magnetic" style="width:100%;justify-content:center;font-size:1.2rem;padding:22px 40px;margin-bottom:20px;display:flex;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
-      Quero Minha Aprovação Agora
+      Quero Meu Painel Agora Agora
     </a>
 
     <div style="display:flex;flex-direction:column;gap:8px;">
       <p style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:0.08em;">
-        ✉ Necessário ter Gmail para receber sua planilha
+        ✉ Gmail obrigatório para receber seu Painel
       </p>
       <p style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:0.08em;">
         🔒 Compra 100% segura via Kiwify · 7 dias de garantia
