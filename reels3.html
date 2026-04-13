@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reels — Antes & Depois</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=Space+Mono:wght@400;700&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --neon:    #00FF88;
+  --carbon:  #090909;
+  --steel:   #111113;
+  --gold:    #F5C518;
+  --danger:  #FF4444;
+  --blue:    #3B82F6;
+  --w: 390px;
+  --h: 844px;
+}
+
+body {
+  background: #0d0d0d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Barlow', sans-serif;
+}
+
+.phone {
+  width: var(--w);
+  height: var(--h);
+  background: var(--carbon);
+  border-radius: 44px;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.07),
+    0 50px 140px rgba(0,0,0,0.95),
+    0 0 80px rgba(0,255,136,0.05);
+  flex-shrink: 0;
+}
+
+canvas#cvs {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  z-index:2; pointer-events:none;
+}
+
+.grid-bg {
+  position:absolute; inset:0; z-index:1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 38px 38px;
+}
+.noise {
+  position:absolute; inset:0; z-index:3; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity:0.028;
+}
+.scanline {
+  position:absolute; inset:0; z-index:4; pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.02) 2px,rgba(0,0,0,0.02) 4px);
+}
+
+/* ── TIMER BAR ── */
+#timer-bar {
+  position:absolute; top:0; left:0; height:3px;
+  background: linear-gradient(90deg, var(--danger), var(--gold), var(--neon));
+  box-shadow: 0 0 8px rgba(0,255,136,0.5);
+  z-index:100; width:0%;
+  transition: none;
+}
+
+/* ── BLOBS ── */
+.blob {
+  position:absolute; border-radius:50%;
+  filter:blur(90px); pointer-events:none; z-index:1;
+  transition: background 0.8s ease;
+}
+
+/* ── MEGA WORDS ── */
+.mega {
+  position:absolute;
+  font-family:'Barlow Condensed',sans-serif; font-weight:900;
+  text-transform:uppercase;
+  color:transparent;
+  white-space:nowrap;
+  user-select:none; pointer-events:none;
+  line-height:1; letter-spacing:-0.02em;
+  will-change:transform,opacity;
+}
+
+/* ── PHOTO LAYERS ── */
+.photo-layer {
+  position:absolute; inset:0;
+  z-index:10;
+  will-change:opacity,transform;
+}
+.photo-layer img {
+  position:absolute;
+  bottom:0; left:50%;
+  transform:translateX(-50%);
+  width:100%;
+  display:block;
+  object-fit:cover;
+  object-position:center top;
+}
+
+/* Overlay colorido sobre foto */
+.photo-overlay {
+  position:absolute; inset:0;
+  pointer-events:none;
+}
+
+/* ── GRADIENT VIGNETTE ── */
+.vignette {
+  position:absolute; inset:0; z-index:15; pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.6) 100%),
+    linear-gradient(to top, rgba(9,9,9,0.95) 0%, transparent 40%),
+    linear-gradient(to bottom, rgba(9,9,9,0.7) 0%, transparent 25%);
+}
+
+/* ── TOP BADGE ── */
+.top-bar {
+  position:absolute; top:0; left:0; right:0;
+  padding:26px 22px 0;
+  z-index:50;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.badge {
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:'Space Mono',monospace; font-weight:700;
+  font-size:0.54rem; letter-spacing:0.1em; text-transform:uppercase;
+  padding:5px 11px; border-radius:4px;
+  will-change:opacity,transform;
+}
+.badge-before {
+  background:var(--danger);
+  color:#fff;
+  box-shadow: 0 0 20px rgba(255,68,68,0.5);
+}
+.badge-after {
+  background:var(--neon);
+  color:#000;
+  box-shadow: 0 0 20px rgba(0,255,136,0.55);
+}
+.bdot {
+  width:6px; height:6px; border-radius:50%;
+  animation:bdot 1.4s ease-in-out infinite;
+}
+@keyframes bdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+
+/* ── COPY BLOCKS ── */
+.copy-block {
+  position:absolute; left:0; right:0;
+  z-index:50; padding:0 22px;
+  will-change:transform,opacity;
+}
+
+.headline {
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:900; text-transform:uppercase;
+  line-height:0.91; letter-spacing:-0.025em; color:#fff;
+}
+.eyebrow {
+  font-family:'Space Mono',monospace;
+  font-size:0.5rem; letter-spacing:0.18em;
+  text-transform:uppercase; margin-bottom:8px;
+}
+.body-copy {
+  font-family:'Barlow',sans-serif;
+  font-size:0.85rem; line-height:1.55;
+  color:rgba(255,255,255,0.72);
+  margin-top:10px;
+}
+
+/* ── TRANSITION FLASH ── */
+#flash {
+  position:absolute; inset:0; z-index:80;
+  background:#fff; opacity:0; pointer-events:none;
+}
+
+/* ── SPLIT LINE (divisor antes/depois) ── */
+#split-line {
+  position:absolute; top:0; left:50%; bottom:0;
+  width:2px;
+  background:linear-gradient(to bottom, transparent, var(--neon), transparent);
+  box-shadow: 0 0 12px var(--neon);
+  z-index:70; opacity:0;
+  transform:scaleY(0);
+  transform-origin:center;
+}
+#split-label-b, #split-label-a {
+  position:absolute; top:50%; z-index:71;
+  transform:translateY(-50%);
+  font-family:'Space Mono',monospace;
+  font-size:0.52rem; letter-spacing:0.12em; text-transform:uppercase;
+  padding:4px 8px; border-radius:4px;
+  opacity:0;
+}
+#split-label-b { left:22px; background:rgba(255,68,68,0.15); color:var(--danger); border:1px solid rgba(255,68,68,0.3); }
+#split-label-a { right:22px; background:rgba(0,255,136,0.1); color:var(--neon); border:1px solid rgba(0,255,136,0.25); }
+
+/* ── CTA FINAL ── */
+#cta-block {
+  position:absolute; left:0; right:0;
+  z-index:55; padding:0 20px;
+  will-change:opacity,transform;
+}
+.cta-box {
+  background:rgba(10,10,12,0.88);
+  border:1px solid rgba(0,255,136,0.2);
+  border-radius:16px;
+  padding:22px 20px;
+  text-align:center;
+  backdrop-filter:blur(16px);
+  box-shadow:0 0 40px rgba(0,255,136,0.08), 0 20px 60px rgba(0,0,0,0.7);
+}
+.cta-price {
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:900; font-size:3.2rem;
+  color:var(--neon); line-height:1;
+  text-shadow:0 0 30px rgba(0,255,136,0.5);
+}
+.cta-action {
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:900; font-size:1.4rem;
+  text-transform:uppercase; letter-spacing:0.02em;
+  color:#fff; line-height:1.1;
+  margin-bottom:6px;
+}
+.cta-comment {
+  display:inline-flex; align-items:center; gap:8px;
+  background:var(--neon); color:#000;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:900; font-size:1.15rem;
+  letter-spacing:0.05em; text-transform:uppercase;
+  padding:12px 22px; border-radius:10px;
+  box-shadow:0 0 40px rgba(0,255,136,0.4);
+  margin-top:12px;
+}
+
+/* ── CORNER ── */
+.corner {
+  position:absolute; z-index:50;
+  font-family:'Space Mono',monospace;
+  font-size:0.46rem; color:rgba(255,255,255,0.12);
+  letter-spacing:0.07em; pointer-events:none;
+}
+.corner::before {
+  content:''; display:block;
+  width:11px; height:11px;
+  border-color:rgba(255,255,255,0.14);
+  border-style:solid; border-width:0;
+  position:absolute;
+}
+.c-tl{top:20px;left:18px}
+.c-tl::before{border-top-width:1px;border-left-width:1px;top:-4px;left:-4px}
+.c-br{bottom:20px;right:18px;text-align:right}
+.c-br::before{border-bottom-width:1px;border-right-width:1px;bottom:-4px;right:-4px}
+
+/* ── PROGRESS BARS ── */
+.prog-track {
+  height:3px; background:rgba(255,255,255,0.05);
+  border-radius:999px; overflow:hidden; margin-top:4px;
+}
+.prog-fill {
+  height:100%; width:0%; border-radius:999px;
+  transition:width 1.6s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ── STAT ROW ── */
+.stat-row {
+  display:flex; gap:8px;
+}
+.stat-mini {
+  flex:1;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px; padding:8px 10px;
+  text-align:center;
+}
+.stat-mini-num {
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:900; font-size:1.3rem;
+  color:var(--neon); line-height:1;
+}
+.stat-mini-label {
+  font-family:'Space Mono',monospace;
+  font-size:0.42rem; letter-spacing:0.08em;
+  text-transform:uppercase; color:rgba(255,255,255,0.35);
+  margin-top:2px;
+}
+
+/* ── REPLAY ── */
+#replay {
+  position:fixed; bottom:26px; right:26px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.12);
+  color:#fff; font-family:'Space Mono',monospace;
+  font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase;
+  padding:8px 14px; border-radius:7px; cursor:pointer;
+  transition:all .2s; backdrop-filter:blur(8px);
+}
+#replay:hover{background:rgba(0,255,136,0.12);border-color:var(--neon);color:var(--neon)}
+
+/* glow pulse anim */
+@keyframes glowpulse {
+  0%,100%{box-shadow:0 0 40px rgba(0,255,136,0.35)}
+  50%{box-shadow:0 0 80px rgba(0,255,136,0.8)}
+}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div id="timer-bar"></div>
+  <div class="grid-bg"></div>
+  <div class="noise"></div>
+  <div class="scanline"></div>
+  <canvas id="cvs"></canvas>
+
+  <!-- Blobs dinâmicos -->
+  <div class="blob" id="blob1" style="width:300px;height:300px;background:rgba(255,68,68,0.06);top:-60px;left:-60px;"></div>
+  <div class="blob" id="blob2" style="width:260px;height:260px;background:rgba(255,68,68,0.04);bottom:80px;right:-50px;"></div>
+  <div class="blob" id="blob3" style="width:200px;height:200px;background:rgba(0,255,136,0);bottom:160px;left:50%;transform:translateX(-50%);"></div>
+
+  <!-- Vignette sempre ativa -->
+  <div class="vignette"></div>
+
+  <!-- Flash de transição -->
+  <div id="flash"></div>
+
+  <!-- Split line -->
+  <div id="split-line"></div>
+  <div id="split-label-b">ANTES</div>
+  <div id="split-label-a">DEPOIS</div>
+
+  <!-- Corners -->
+  <div class="corner c-tl" id="coord">X: 00.00<br>Y: 00.00</div>
+  <div class="corner c-br" id="status">SISTEMA<br><span style="color:var(--neon)">ATIVO</span></div>
+
+  <!-- ════ FOTO P1 (ANTES) ════ -->
+  <div class="photo-layer" id="layer-p1" style="opacity:0;">
+    <div class="photo-overlay" style="background:linear-gradient(to top, rgba(9,9,9,1) 0%, rgba(9,9,9,0.3) 45%, rgba(9,9,9,0.6) 100%);"></div>
+    <img src="p1.png" alt="Antes" style="width:100%;object-position:center top;">
+  </div>
+
+  <!-- ════ FOTO P2 (DEPOIS) ════ -->
+  <div class="photo-layer" id="layer-p2" style="opacity:0;">
+    <div class="photo-overlay" style="background:linear-gradient(to top, rgba(9,9,9,1) 0%, rgba(9,9,9,0.15) 50%, rgba(9,9,9,0.5) 100%);"></div>
+    <img src="p2.png" alt="Depois" style="width:100%;object-position:center top;">
+  </div>
+
+  <!-- ════ TOP BAR ════ -->
+  <div class="top-bar">
+    <div class="badge badge-before" id="badge-b" style="opacity:0;">
+      <span class="bdot" style="background:#fff;"></span>ANTES
+    </div>
+    <div class="badge badge-after" id="badge-a" style="opacity:0;display:none;">
+      <span class="bdot" style="background:#000;"></span>DEPOIS
+    </div>
+    <span style="font-family:'Space Mono',monospace;font-size:0.44rem;color:rgba(255,255,255,0.16);letter-spacing:0.08em;" id="buildtag">BUILD v2.4.1</span>
+  </div>
+
+  <!-- ════ MEGA BG WORDS ════ -->
+  <div class="mega" id="m-chaos" style="font-size:5.5rem;top:80px;left:-6px;opacity:0;-webkit-text-stroke:1px rgba(255,68,68,0.12);">CAOS</div>
+  <div class="mega" id="m-control" style="font-size:5rem;top:80px;left:-6px;opacity:0;-webkit-text-stroke:1px rgba(0,255,136,0.14);">CONTROLE</div>
+  <div class="mega" id="m-bottom" style="font-size:3.8rem;bottom:220px;right:-4px;opacity:0;-webkit-text-stroke:1px rgba(255,255,255,0.07);text-align:right;">APROVADO</div>
+
+  <!-- ════ COPY ANTES ════ -->
+  <div class="copy-block" id="copy-antes" style="top:12%;opacity:0;">
+    <p class="eyebrow" style="color:rgba(255,100,100,0.7);">😩 Você agora</p>
+    <div class="headline" style="font-size:2.7rem;">
+      TENTANDO<br>ESTUDAR<br>
+      <span style="color:var(--danger);">SEM RUMO</span>
+    </div>
+    <p class="body-copy">
+      Um dia inteiro de trabalho,<br>
+      pilhas de apostilas e <strong style="color:#fff;">zero noção</strong><br>
+      de quanto estudou de verdade.
+    </p>
+  </div>
+
+  <!-- ════ COPY DEPOIS ════ -->
+  <div class="copy-block" id="copy-depois" style="top:10%;opacity:0;">
+    <p class="eyebrow" style="color:rgba(0,255,136,0.7);">🏆 Você com a Planilha</p>
+    <div class="headline" style="font-size:2.55rem;">
+      PROGRESSO<br>VISÍVEL.<br>
+      <span style="color:var(--neon);">MOTIVAÇÃO<br>REAL.</span>
+    </div>
+    <p class="body-copy">
+      Dashboard completo, disciplina<br>
+      crítica no radar e <strong style="color:#fff;">cada hora</strong><br>
+      <strong style="color:#fff;">contando para a aprovação.</strong>
+    </p>
+  </div>
+
+  <!-- ════ STATS DEPOIS (barras) ════ -->
+  <div id="stats-depois" style="position:absolute;bottom:220px;left:0;right:0;z-index:50;padding:0 20px;opacity:0;">
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">
+      <div>
+        <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:0.48rem;letter-spacing:0.09em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-bottom:4px;">
+          <span>Horas Executadas</span><span style="color:rgba(255,255,255,0.55);">9h / 20h</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="pf1" style="background:linear-gradient(90deg,var(--neon),#00ccff);box-shadow:0 0 10px rgba(0,255,136,0.5);"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:0.48rem;letter-spacing:0.09em;text-transform:uppercase;color:rgba(255,255,255,0.38);margin-bottom:4px;">
+          <span>Constância</span><span style="color:rgba(255,255,255,0.55);">3 / 7 dias</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="pf2" style="background:linear-gradient(90deg,var(--gold),#ff9900);box-shadow:0 0 10px rgba(245,197,24,0.5);"></div></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-mini">
+        <div class="stat-mini-num">7</div>
+        <div class="stat-mini-label">dias p/ sentir</div>
+      </div>
+      <div class="stat-mini">
+        <div class="stat-mini-num">57</div>
+        <div class="stat-mini-label" style="color:var(--gold);">d-day</div>
+      </div>
+      <div class="stat-mini" style="border-color:rgba(0,255,136,0.18);">
+        <div class="stat-mini-num">5★</div>
+        <div class="stat-mini-label">avaliação</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ CTA FINAL ════ -->
+  <div id="cta-block" style="top:50%;transform:translateY(-50%);opacity:0;">
+    <div class="cta-box">
+      <p style="font-family:'Space Mono',monospace;font-size:0.52rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(0,255,136,0.6);margin-bottom:10px;">
+        🔥 Oferta de lançamento
+      </p>
+      <div class="cta-action">
+        Quer sair do caos<br>e chegar lá?
+      </div>
+      <div class="cta-price">R$ 37</div>
+      <p style="font-family:'Space Mono',monospace;font-size:0.5rem;color:rgba(255,255,255,0.35);margin:4px 0 0;letter-spacing:0.06em;">pagamento único · acesso vitalício</p>
+      <div style="width:100%;margin-top:14px;">
+        <div class="cta-comment" style="width:100%;justify-content:center;">
+          💬 Comente: <strong style="margin-left:4px;">"PLANILHA"</strong>
+        </div>
+      </div>
+      <p style="font-family:'Space Mono',monospace;font-size:0.44rem;color:rgba(255,255,255,0.22);margin-top:10px;letter-spacing:0.07em;">
+        ✉ Gmail obrigatório para receber
+      </p>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<button id="replay">↺ Replay</button>
+
+<script>
+/* ── PARTICLES ── */
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d');
+const phone = document.getElementById('phone');
+cvs.width  = phone.offsetWidth;
+cvs.height = phone.offsetHeight;
+
+let particleColor = [255, 68, 68]; // começa vermelho
+
+class P {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * cvs.width;
+    this.y = cvs.height + 10;
+    this.size = Math.random() * 1.4 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.35;
+    this.vy = -Math.random() * 0.65 - 0.2;
+    this.alpha = Math.random() * 0.4 + 0.08;
+    this.life = 0;
+    this.max = Math.random() * 150 + 80;
+  }
+  tick() { this.x+=this.vx; this.y+=this.vy; this.life++; if(this.life>this.max||this.y<-10)this.reset(); }
+  draw() {
+    const p=this.life/this.max;
+    const a=this.alpha*(p<0.1?p*10:p>0.8?(1-p)*5:1);
+    const [r,g,b]=particleColor;
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${r},${g},${b},${a})`;
+    ctx.fill();
+  }
+}
+const particles = Array.from({length:70},()=>new P());
+function loopP(){ctx.clearRect(0,0,cvs.width,cvs.height);particles.forEach(p=>{p.tick();p.draw();});requestAnimationFrame(loopP);}
+loopP();
+
+/* ── TIMER BAR ── */
+const timerBar = document.getElementById('timer-bar');
+let timerStart = null;
+const TOTAL = 20000;
+function tickTimer(ts){
+  if(!timerStart)timerStart=ts;
+  const pct=Math.min((ts-timerStart)/TOTAL*100,100);
+  timerBar.style.width=pct+'%';
+  if(pct<100)requestAnimationFrame(tickTimer);
+}
+
+/* ── PLAY ── */
+function play() {
+  timerStart = null;
+  timerBar.style.width = '0%';
+  requestAnimationFrame(tickTimer);
+  particleColor = [255, 68, 68];
+
+  const els = ['#layer-p1','#layer-p2','#badge-b','#badge-a',
+               '#m-chaos','#m-control','#m-bottom',
+               '#copy-antes','#copy-depois',
+               '#stats-depois','#cta-block','#split-line',
+               '#split-label-b','#split-label-a','#flash'];
+  gsap.set(els, {opacity:0, clearProps:'x,y,scale,rotation'});
+  gsap.set('#badge-a', {display:'none'});
+  gsap.set('#badge-b', {display:'inline-flex'});
+  gsap.set('#split-line', {scaleY:0});
+  document.querySelectorAll('.prog-fill').forEach(b=>b.style.width='0%');
+
+  // blobs vermelhos
+  document.getElementById('blob1').style.background='rgba(255,68,68,0.07)';
+  document.getElementById('blob2').style.background='rgba(255,68,68,0.04)';
+  document.getElementById('blob3').style.background='rgba(0,255,136,0)';
+
+  const tl = gsap.timeline({ defaults:{ease:'expo.out'} });
+
+  /* ─ FASE 1: ANTES (0–8s) ─ */
+
+  // grid flash inicial
+  tl.fromTo('#flash',{opacity:0},{opacity:0.06,duration:0.1,yoyo:true,repeat:3}, 0)
+
+  // mega word CAOS entra
+  .fromTo('#m-chaos',{x:-50,opacity:0},{x:0,opacity:1,duration:1}, 0.1)
+
+  // badge ANTES
+  .fromTo('#badge-b',{y:-16,opacity:0},{y:0,opacity:1,duration:0.5}, 0.2)
+
+  // foto p1 aparece
+  .fromTo('#layer-p1',{opacity:0,scale:1.04},{opacity:1,scale:1,duration:1.2,ease:'power2.out'}, 0.3)
+
+  // copy ANTES sobe
+  .fromTo('#copy-antes',{y:36,opacity:0},{y:0,opacity:1,duration:0.8}, 0.6)
+
+  // leve tremor na foto p1 — exaustão
+  .to('#layer-p1', {x:3,duration:0.08,yoyo:true,repeat:5,ease:'none'}, 2.5)
+
+  // copy pulsa vermelho
+  .to('#copy-antes .headline', {color:'#FF6666',duration:0.3,yoyo:true,repeat:1}, 3)
+
+  /* ─ TRANSIÇÃO (8–9s) ─ */
+
+  // split line aparece
+  .to('#split-line',{opacity:1,scaleY:1,duration:0.5,ease:'power3.out'}, 7.5)
+  .to(['#split-label-b','#split-label-a'],{opacity:1,duration:0.3}, 7.8)
+
+  // flash branco de transição
+  .to('#flash',{opacity:0.9,duration:0.12}, 8.3)
+  .to('#flash',{opacity:0,duration:0.4}, 8.42)
+
+  // split some
+  .to(['#split-line','#split-label-b','#split-label-a'],{opacity:0,duration:0.3}, 8.5)
+
+  // fase antes some
+  .to('#copy-antes',{opacity:0,y:-20,duration:0.4}, 8.2)
+  .to('#m-chaos',{opacity:0,x:50,duration:0.4}, 8.2)
+  .to('#layer-p1',{opacity:0,scale:0.97,duration:0.5}, 8.2)
+  .to('#badge-b',{opacity:0,duration:0.3}, 8.2)
+
+  // partículas mudam para verde
+  .call(()=>{ particleColor=[0,255,136]; }, null, 8.5)
+
+  // blobs mudam para verde
+  .call(()=>{
+    document.getElementById('blob1').style.background='rgba(0,255,136,0.06)';
+    document.getElementById('blob2').style.background='rgba(0,80,255,0.04)';
+    document.getElementById('blob3').style.background='rgba(0,255,136,0.1)';
+  }, null, 8.5)
+
+  /* ─ FASE 2: DEPOIS (8.5–16s) ─ */
+
+  // mega CONTROLE entra
+  .fromTo('#m-control',{x:-50,opacity:0},{x:0,opacity:1,duration:1}, 8.6)
+  .fromTo('#m-bottom',{x:40,opacity:0},{x:0,opacity:1,duration:0.8}, 8.8)
+
+  // badge DEPOIS
+  .call(()=>{
+    document.getElementById('badge-a').style.display='inline-flex';
+    document.getElementById('badge-b').style.display='none';
+  }, null, 8.7)
+  .fromTo('#badge-a',{y:-16,opacity:0},{y:0,opacity:1,duration:0.5}, 8.7)
+
+  // foto p2 aparece
+  .fromTo('#layer-p2',{opacity:0,scale:1.04},{opacity:1,scale:1,duration:1.2,ease:'power2.out'}, 8.6)
+
+  // copy DEPOIS sobe
+  .fromTo('#copy-depois',{y:36,opacity:0},{y:0,opacity:1,duration:0.8}, 9)
+
+  // 11s — copy some, stats entram
+  .to('#copy-depois',{opacity:0,y:-20,duration:0.45}, 11.8)
+  .fromTo('#stats-depois',{y:24,opacity:0},{y:0,opacity:1,duration:0.6}, 12)
+  .call(()=>{
+    document.getElementById('pf1').style.width='45%';
+    document.getElementById('pf2').style.width='42%';
+  }, null, 12.15)
+
+  // foto pulsa de orgulho
+  .to('#layer-p2',{scale:1.03,duration:0.4,ease:'power1.out'}, 12.5)
+  .to('#layer-p2',{scale:1,duration:0.5,ease:'elastic.out(1,0.5)'}, 12.9)
+
+  /* ─ FASE 3: CTA (14–20s) ─ */
+
+  // tudo some, CTA entra
+  .to(['#stats-depois','#m-control','#m-bottom','#layer-p2','#badge-a'],
+    {opacity:0,duration:0.5}, 14)
+
+  .fromTo('#cta-block',
+    {y:40,scale:0.94,opacity:0},
+    {y:0,scale:1,opacity:1,duration:0.8,ease:'back.out(1.4)'}, 14.3)
+
+  // glow pulsante no CTA
+  .to('#cta-block .cta-comment',
+    {boxShadow:'0 0 60px rgba(0,255,136,0.8)',duration:0.5,yoyo:true,repeat:-1,ease:'sine.inOut'}, 15)
+
+  // preço pisca
+  .to('#cta-block .cta-price',
+    {textShadow:'0 0 60px rgba(0,255,136,0.9)',duration:0.6,yoyo:true,repeat:3,ease:'sine.inOut'}, 15.2);
+}
+
+play();
+document.getElementById('replay').addEventListener('click', play);
+</script>
+</body>
+</html>
